@@ -53,7 +53,7 @@ impl PrimaryStateFilter {
             context.has_ground_contact,
         ) {
             // Unstiff transitions (entering and exiting)
-            (_, true, _, _, _, true) => PrimaryState::Finished,
+            (_, true, _, _, _, true) => PrimaryState::Unstiff,
             (_, true, _, _, _, false) => PrimaryState::Unstiff,
 
             (PrimaryState::Initial, _, _, true, _, _) => PrimaryState::Calibration,

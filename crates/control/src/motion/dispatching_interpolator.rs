@@ -13,10 +13,13 @@ pub struct DispatchingInterpolator {
     stiffnesses: Joints,
     last_currently_active: bool,
     last_dispatching_motion: MotionType,
+    custom_penalized_pose: Option<Joints>,
 }
 
 #[context]
-pub struct CreationContext {}
+pub struct CreationContext {
+    pub penalized_pose: Parameter<Joints, "penalized_pose">,
+}
 
 #[context]
 pub struct CycleContext {
@@ -41,6 +44,7 @@ pub struct CycleContext {
 #[derive(Default)]
 pub struct MainOutputs {
     pub dispatching_command: MainOutput<JointsCommand>,
+    pub custom_penalized_pose: MainOutput<Option<Joints>>,
 }
 
 impl DispatchingInterpolator {
@@ -50,6 +54,7 @@ impl DispatchingInterpolator {
             stiffnesses: Default::default(),
             last_currently_active: false,
             last_dispatching_motion: MotionType::Unstiff,
+            custom_penalized_pose: None,
         })
     }
 
@@ -59,11 +64,23 @@ impl DispatchingInterpolator {
         let currently_active = context.motion_selection.current_motion == MotionType::Dispatching;
         if !currently_active {
             self.last_currently_active = currently_active;
-            return Ok(Default::default());
+            return Ok({
+                MainOutputs {
+                    dispatching_command: Default::default(),
+                    custom_penalized_pose: self.custom_penalized_pose.into(),
+                }
+            });
         }
         let dispatching_motion = match context.motion_selection.dispatching_motion {
             Some(motion) => motion,
-            None => return Ok(Default::default()),
+            None => {
+                return Ok({
+                    MainOutputs {
+                        dispatching_command: Default::default(),
+                        custom_penalized_pose: self.custom_penalized_pose.into(),
+                    }
+                })
+            }
         };
         let interpolator_reset_required =
             self.last_dispatching_motion != dispatching_motion || !self.last_currently_active;
@@ -98,14 +115,20 @@ impl DispatchingInterpolator {
                     ),
                     Joints::fill(0.8),
                 ),
-                MotionType::Penalized => (
-                    LinearInterpolator::new(
-                        context.sensor_data.positions,
-                        *context.penalized_pose,
-                        Duration::from_secs(1),
-                    ),
-                    Joints::fill(0.8),
-                ),
+                MotionType::Penalized => {
+                    println!("DispatchingInterpolator: Is reached!");
+                    println!("{:?}", context.sensor_data.positions);
+                    self.custom_penalized_pose = Some(context.sensor_data.positions.clone());
+                    (
+                        LinearInterpolator::new(
+                            context.sensor_data.positions,
+                            self.custom_penalized_pose
+                                .expect("Should be set, dispatching"),
+                            Duration::from_secs(1),
+                        ),
+                        Joints::fill(0.8),
+                    )
+                }
                 MotionType::SitDown => (
                     LinearInterpolator::new(
                         context.sensor_data.positions,
@@ -160,13 +183,14 @@ impl DispatchingInterpolator {
             .step(context.cycle_time.last_cycle_duration);
 
         context.motion_safe_exits[MotionType::Dispatching] = self.interpolator.is_finished();
-
+        println!("Dispatching: {:?}", self.custom_penalized_pose);
         Ok(MainOutputs {
             dispatching_command: JointsCommand {
                 positions: self.interpolator.value(),
                 stiffnesses: self.stiffnesses,
             }
             .into(),
+            custom_penalized_pose: self.custom_penalized_pose.clone().into(),
         })
     }
 }

@@ -34,6 +34,7 @@ pub struct CycleContext {
     pub walk_joints_command: Input<BodyJointsCommand, "walk_joints_command">,
     pub hardware_interface: HardwareInterface,
     pub leds: Input<Leds, "leds">,
+    pub custom_penalized_pose: Input<Option<Joints>, "custom_penalized_pose?">,
 }
 
 #[context]
@@ -59,6 +60,7 @@ impl JointCommandSender {
         let stand_up_back_positions = context.stand_up_back_positions;
         let stand_up_front_positions = context.stand_up_front_positions;
         let walk = context.walk_joints_command;
+        println!("Joint command: {:?}", context.custom_penalized_pose);
 
         let (positions, stiffnesses) = match motion_selection.current_motion {
             MotionType::ArmsUpSquat => (arms_up_squat.positions, arms_up_squat.stiffnesses),
@@ -69,7 +71,7 @@ impl JointCommandSender {
             MotionType::FallProtection => (fall_protection_positions, fall_protection_stiffnesses),
             MotionType::JumpLeft => (jump_left.positions, jump_left.stiffnesses),
             MotionType::JumpRight => (jump_right.positions, jump_right.stiffnesses),
-            MotionType::Penalized => (*context.penalized_pose, Joints::fill(0.8)),
+            MotionType::Penalized => (*context.custom_penalized_pose.expect("Should be some"), Joints::fill(0.8)),
             MotionType::SitDown => (sit_down.positions, sit_down.stiffnesses),
             MotionType::Stand => (
                 Joints::from_head_and_body(head_joints_command.positions, walk.positions),
