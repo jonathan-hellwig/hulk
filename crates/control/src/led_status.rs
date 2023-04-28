@@ -168,49 +168,8 @@ impl LedStatus {
         last_ball_data_top_too_old: bool,
         last_ball_data_bottom_too_old: bool,
     ) -> (Eye, Eye) {
-        match primary_state {
-            PrimaryState::Unstiff => {
-                let rainbow_eye = Self::get_rainbow_eye(cycle_start_time);
-                (rainbow_eye, rainbow_eye)
-            }
-            _ => {
-                let ball_background_color =
-                    if at_least_one_ball_data_top || at_least_one_ball_data_bottom {
-                        Some(Rgb::GREEN)
-                    } else {
-                        None
-                    };
-                let ball_color_top = if last_ball_data_top_too_old {
-                    Some(Rgb::RED)
-                } else {
-                    None
-                };
-                let ball_color_bottom = if last_ball_data_bottom_too_old {
-                    Some(Rgb::RED)
-                } else {
-                    None
-                };
-                (
-                    Eye {
-                        color_at_0: ball_color_top
-                            .unwrap_or_else(|| ball_background_color.unwrap_or(Rgb::BLACK)),
-                        color_at_45: ball_color_top
-                            .unwrap_or_else(|| ball_background_color.unwrap_or(Rgb::BLACK)),
-                        color_at_90: ball_background_color.unwrap_or(Rgb::BLACK),
-                        color_at_135: ball_color_bottom
-                            .unwrap_or_else(|| ball_background_color.unwrap_or(Rgb::BLACK)),
-                        color_at_180: ball_color_bottom
-                            .unwrap_or_else(|| ball_background_color.unwrap_or(Rgb::BLACK)),
-                        color_at_225: ball_color_bottom
-                            .unwrap_or_else(|| ball_background_color.unwrap_or(Rgb::BLACK)),
-                        color_at_270: ball_background_color.unwrap_or(Rgb::BLACK),
-                        color_at_315: ball_color_top
-                            .unwrap_or_else(|| ball_background_color.unwrap_or(Rgb::BLACK)),
-                    },
-                    Eye::default(),
-                )
-            }
-        }
+        let rainbow_eye = Self::get_rainbow_eye(cycle_start_time);
+        return (rainbow_eye, rainbow_eye);
     }
 
     fn get_rainbow_eye(cycle_start_time: SystemTime) -> Eye {
